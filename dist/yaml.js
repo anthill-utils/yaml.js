@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 var Dumper, Inline, Utils;
 
 Utils = require('./Utils');
@@ -25,6 +25,9 @@ Dumper = (function() {
       objectEncoder = null;
     }
     output = '';
+    if (typeof input === 'function') {
+      return output;
+    }
     prefix = (indent ? Utils.strRepeat(' ', indent) : '');
     if (inline <= 0 || typeof input !== 'object' || input instanceof Date || Utils.isEmpty(input)) {
       output += prefix + Inline.dump(input, exceptionOnInvalidType, objectEncoder);
@@ -33,7 +36,7 @@ Dumper = (function() {
         for (i = 0, len = input.length; i < len; i++) {
           value = input[i];
           willBeInlined = inline - 1 <= 0 || typeof value !== 'object' || Utils.isEmpty(value);
-          output += prefix + '-' + (willBeInlined ? ' ' : "\n") + this.dump(value, inline - 1, (willBeInlined ? 0 : indent + this.indentation), exceptionOnInvalidType, objectEncoder) + (willBeInlined ? "\n" : '');
+          output += prefix + '- ' + this.dump(value, inline - 1, (willBeInlined ? 0 : indent + this.indentation), exceptionOnInvalidType, objectEncoder) + (willBeInlined ? "\n" : '');
         }
       } else {
         for (key in input) {
@@ -315,7 +318,7 @@ Inline = (function() {
       return (type === 'string' ? "'" + value + "'" : String(parseFloat(value)));
     }
     if (type === 'number') {
-      return (value === Infinity ? '.Inf' : (value === -Infinity ? '-.Inf' : (isNaN(value) ? '.NaN' : value)));
+      return (value === 2e308 ? '.Inf' : (value === -2e308 ? '-.Inf' : (isNaN(value) ? '.NaN' : value)));
     }
     if (Escaper.requiresDoubleQuoting(value)) {
       return Escaper.escapeWithDoubleQuotes(value);
@@ -436,7 +439,7 @@ Inline = (function() {
   };
 
   Inline.parseSequence = function(sequence, context) {
-    var e, error, i, isQuoted, len, output, ref, value;
+    var e, i, isQuoted, len, output, ref, value;
     output = [];
     len = sequence.length;
     i = context.i;
@@ -559,11 +562,11 @@ Inline = (function() {
       case 'false':
         return false;
       case '.inf':
-        return Infinity;
+        return 2e308;
       case '.nan':
-        return NaN;
+        return 0/0;
       case '-.inf':
-        return Infinity;
+        return 2e308;
       default:
         firstChar = scalarLower.charAt(0);
         switch (firstChar) {
@@ -742,7 +745,7 @@ Parser = (function() {
   }
 
   Parser.prototype.parse = function(value, exceptionOnInvalidType, objectDecoder) {
-    var alias, allowOverwrite, block, c, context, data, e, error, error1, error2, first, i, indent, isRef, j, k, key, l, lastKey, len, len1, len2, len3, lineCount, m, matches, mergeNode, n, name, parsed, parsedItem, parser, ref, ref1, ref2, refName, refValue, val, values;
+    var alias, allowOverwrite, block, c, context, data, e, first, i, indent, isRef, j, k, key, l, lastKey, len, len1, len2, len3, lineCount, m, matches, mergeNode, n, name, parsed, parsedItem, parser, ref, ref1, ref2, refName, refValue, val, values;
     if (exceptionOnInvalidType == null) {
       exceptionOnInvalidType = false;
     }
@@ -919,8 +922,8 @@ Parser = (function() {
         if (1 === lineCount || (2 === lineCount && Utils.isEmpty(this.lines[1]))) {
           try {
             value = Inline.parse(this.lines[0], exceptionOnInvalidType, objectDecoder);
-          } catch (error1) {
-            e = error1;
+          } catch (error) {
+            e = error;
             e.parsedLine = this.getRealCurrentLineNb() + 1;
             e.snippet = this.currentLine;
             throw e;
@@ -947,8 +950,8 @@ Parser = (function() {
         } else if ((ref2 = Utils.ltrim(value).charAt(0)) === '[' || ref2 === '{') {
           try {
             return Inline.parse(value, exceptionOnInvalidType, objectDecoder);
-          } catch (error2) {
-            e = error2;
+          } catch (error) {
+            e = error;
             e.parsedLine = this.getRealCurrentLineNb() + 1;
             e.snippet = this.currentLine;
             throw e;
@@ -1050,7 +1053,7 @@ Parser = (function() {
   };
 
   Parser.prototype.parseValue = function(value, exceptionOnInvalidType, objectDecoder) {
-    var e, error, foldedIndent, matches, modifiers, pos, ref, ref1, val;
+    var e, foldedIndent, matches, modifiers, pos, ref, ref1, val;
     if (0 === value.indexOf('*')) {
       pos = value.indexOf('#');
       if (pos !== -1) {
@@ -1742,7 +1745,7 @@ Utils = (function() {
           name = ref[j];
           try {
             xhr = new ActiveXObject(name);
-          } catch (undefined) {}
+          } catch (error) {}
         }
       }
     }
